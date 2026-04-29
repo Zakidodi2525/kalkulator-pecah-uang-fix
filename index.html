@@ -1,20 +1,467 @@
-class="grid grid-cols-12 items-center px-3 py-3 text-sm">
-                            <div class="col-span-4 font-medium text-slate-700">${fmtIDR(x.denom)}</div>
-                            <div class="col-span-2 text-right text-slate-600">${x.percent}%</div>
-                            <div class="col-span-4 text-right text-slate-700">${fmtIDR(x.allocatedAmount)}</div>
-                            <div class="col-span-2 text-right">
-                              <span class="font-semibold text-blue-600">${x.count}</span>
-                              <span class="text-xs text-slate-400 ml-1">Lbr</span>
-                            </div>
-                          </div>`
-                        )
-                        .join("")
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kalkulator Pecah Uang</title>
+  <script>
+    // Apply theme as early as possible to avoid flash
+    (function () {
+      try {
+        var stored = localStorage.getItem("rupiah-theme");
+        var prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        var theme = stored || (prefersDark ? "dark" : "light");
+        if (theme === "dark") document.documentElement.classList.add("dark");
+      } catch (e) {}
+    })();
+  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { darkMode: "class" };
+  </script>
+  <style>
+    body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors">
+  <div class="min-h-screen w-full flex items-center justify-center p-4">
+    <div class="w-full max-w-md">
+      <header class="mb-6 relative">
+        <button id="theme-toggle" aria-label="Ganti tema"
+          class="absolute top-0 right-0 w-10 h-10 rounded-full flex items-center justify-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 shadow-sm hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+          <svg id="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+          <svg id="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" hidden><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+        </button>
+        <div class="text-center">
+          <div class="mx-auto w-12 h-12 bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400 rounded-2xl flex items-center justify-center mb-4 shadow-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg>
+          </div>
+          <h1 class="text-2xl font-semibold text-slate-900 dark:text-slate-100 tracking-tight">Kalkulator Pecah Uang</h1>
+          <p class="text-slate-500 dark:text-slate-400 mt-1 text-sm">Hitung rincian pecahan uang dengan cepat &amp; presisi</p>
+        </div>
+      </header>
+
+      <div class="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 shadow-lg shadow-slate-200/40 dark:shadow-black/20 rounded-2xl overflow-hidden">
+        <div class="bg-white dark:bg-slate-900 pb-6 pt-6 px-6 border-b border-slate-100 dark:border-slate-800 space-y-4">
+          <div id="mode-tabs" class="grid grid-cols-4 gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+            <button data-mode="auto" class="mode-tab relative flex items-center justify-center gap-1.5 h-10 rounded-lg text-xs font-medium transition-all bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm">Auto</button>
+            <button data-mode="target" class="mode-tab relative flex items-center justify-center gap-1.5 h-10 rounded-lg text-xs font-medium transition-all text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">Target</button>
+            <button data-mode="custom" class="mode-tab relative flex items-center justify-center gap-1.5 h-10 rounded-lg text-xs font-medium transition-all text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">Custom</button>
+            <button data-mode="percent" class="mode-tab relative flex items-center justify-center gap-1.5 h-10 rounded-lg text-xs font-medium transition-all text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">Persen</button>
+          </div>
+
+          <div class="space-y-2">
+            <label for="amount-input" class="text-sm font-medium text-slate-700 dark:text-slate-300 ml-1">Jumlah Uang (Rp)</label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <span class="text-slate-400 dark:text-slate-500 font-medium">Rp</span>
+              </div>
+              <input id="amount-input" type="text" inputmode="numeric" placeholder="0"
+                class="pl-12 h-14 text-xl font-semibold bg-slate-50 dark:bg-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-xl w-full outline-none transition-all" />
+            </div>
+          </div>
+
+          <div id="target-picker" hidden class="space-y-2 pt-1">
+            <label class="text-sm font-medium text-slate-700 dark:text-slate-300 ml-1">Pilih Pecahan Target</label>
+            <div id="target-grid" class="grid grid-cols-5 gap-2"></div>
+            <p id="target-hint" class="text-xs text-slate-400 dark:text-slate-500 ml-1 pt-1"></p>
+          </div>
+
+          <div id="custom-picker" hidden class="space-y-3 pt-1">
+            <div class="flex items-center justify-between">
+              <label class="text-sm font-medium text-slate-700 dark:text-slate-300 ml-1">
+                Bagi Rata Antar Pecahan
+                <span id="custom-count" class="ml-2 text-xs font-normal text-slate-400 dark:text-slate-500"></span>
+              </label>
+              <div class="flex items-center gap-1">
+                <button id="custom-all" class="inline-flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 disabled:text-slate-300 dark:disabled:text-slate-600 disabled:cursor-not-allowed px-2 py-1 rounded-md hover:bg-blue-50 dark:hover:bg-blue-950/50 disabled:hover:bg-transparent transition-colors">Semua</button>
+                <button id="custom-none" class="inline-flex items-center gap-1 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100 disabled:text-slate-300 dark:disabled:text-slate-600 disabled:cursor-not-allowed px-2 py-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 disabled:hover:bg-transparent transition-colors">Kosongkan</button>
+              </div>
+            </div>
+            <div id="custom-grid" class="grid grid-cols-2 gap-2"></div>
+            <div id="custom-perdenom" class="hidden items-center justify-between text-xs px-1 pt-1">
+              <span class="text-slate-500 dark:text-slate-400" id="custom-perdenom-label">Alokasi per pecahan</span>
+              <span class="font-semibold text-blue-600 dark:text-blue-400" id="custom-perdenom-value">Rp0</span>
+            </div>
+            <p id="custom-empty-warn" hidden class="text-xs text-orange-600 dark:text-orange-400 ml-1">Pilih minimal satu pecahan untuk dibagi rata.</p>
+          </div>
+
+          <div id="percent-picker" hidden class="space-y-3 pt-1">
+            <div class="flex items-center justify-between">
+              <label class="text-sm font-medium text-slate-700 dark:text-slate-300 ml-1">Alokasi Per Pecahan</label>
+              <button id="percent-reset" class="inline-flex items-center gap-1 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100 px-2 py-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">Reset</button>
+            </div>
+            <div class="space-y-1.5">
+              <div class="flex items-center justify-between text-xs">
+                <span class="text-slate-500 dark:text-slate-400 font-medium">Total Alokasi</span>
+                <span id="percent-total-label" class="font-semibold text-blue-600 dark:text-blue-400">0%</span>
+              </div>
+              <div class="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                <div id="percent-bar" class="h-full bg-blue-500 rounded-full transition-all duration-300" style="width:0%"></div>
+              </div>
+              <p id="percent-warn" hidden class="inline-flex items-center gap-1 text-xs font-medium text-red-600 dark:text-red-400 pt-1">Total melebihi 100%.</p>
+            </div>
+            <div id="percent-rows" class="space-y-2 p-2 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800"></div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3 pt-2">
+            <button id="btn-calc" class="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-sm hover:shadow-md transition-all font-medium">Hitung</button>
+            <button id="btn-clear" class="w-full h-12 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-all font-medium">Bersihkan</button>
+          </div>
+        </div>
+
+        <div class="bg-slate-50/50 dark:bg-slate-950/50 p-6 min-h-[300px]">
+          <div id="results-area"></div>
+        </div>
+      </div>
+
+      <footer class="mt-8 text-center">
+        <p class="text-xs text-slate-400 dark:text-slate-500">Dibuat untuk akurasi &amp; kemudahan.</p>
+      </footer>
+    </div>
+  </div>
+
+  <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-4 py-2.5 rounded-xl text-sm shadow-lg opacity-0 pointer-events-none transition-opacity duration-300 z-50">
+    Berhasil disalin
+  </div>
+
+  <script>
+    const DENOMINATIONS = [100000, 50000, 20000, 10000, 5000, 2000, 1000, 500, 200, 100];
+    const PERCENT_DENOMINATIONS = [100000, 50000, 20000, 10000, 5000, 2000, 1000];
+
+    const state = {
+      mode: "auto",
+      amount: 0,
+      raw: "",
+      targetDenom: 50000,
+      customDenoms: [100000, 50000, 20000, 10000],
+      percentages: Object.fromEntries(PERCENT_DENOMINATIONS.map((d) => [d, 0])),
+    };
+
+    const fmtIDR = (val) =>
+      new Intl.NumberFormat("id-ID", {
+        style: "currency", currency: "IDR",
+        minimumFractionDigits: 0, maximumFractionDigits: 0,
+      }).format(val);
+    const fmtThousand = (val) => new Intl.NumberFormat("id-ID").format(val);
+    const fmtDenomLabel = (val) => (val >= 1000 ? `${val / 1000}rb` : `${val}`);
+
+    // ---------- Theme toggle ----------
+    const themeToggle = document.getElementById("theme-toggle");
+    const moonIcon = document.getElementById("theme-icon-moon");
+    const sunIcon = document.getElementById("theme-icon-sun");
+    function syncThemeIcons() {
+      const isDark = document.documentElement.classList.contains("dark");
+      moonIcon.hidden = isDark;
+      sunIcon.hidden = !isDark;
+      themeToggle.setAttribute("aria-label", isDark ? "Aktifkan mode terang" : "Aktifkan mode gelap");
+    }
+    themeToggle.addEventListener("click", () => {
+      const root = document.documentElement;
+      const next = root.classList.contains("dark") ? "light" : "dark";
+      if (next === "dark") root.classList.add("dark");
+      else root.classList.remove("dark");
+      try { localStorage.setItem("rupiah-theme", next); } catch (e) {}
+      syncThemeIcons();
+    });
+    syncThemeIcons();
+
+    // ---------- Input ----------
+    const amountInput = document.getElementById("amount-input");
+    amountInput.addEventListener("input", (e) => {
+      const cleaned = e.target.value.replace(/\D/g, "");
+      state.raw = cleaned;
+      state.amount = cleaned ? parseInt(cleaned, 10) : 0;
+      e.target.value = cleaned ? fmtThousand(parseInt(cleaned, 10)) : "";
+      render();
+    });
+
+    // ---------- Mode tabs ----------
+    document.querySelectorAll(".mode-tab").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        state.mode = btn.dataset.mode;
+        document.querySelectorAll(".mode-tab").forEach((b) => {
+          if (b.dataset.mode === state.mode) {
+            b.classList.add("bg-white", "dark:bg-slate-900", "text-blue-600", "dark:text-blue-400", "shadow-sm");
+            b.classList.remove("text-slate-500", "dark:text-slate-400", "hover:text-slate-700", "dark:hover:text-slate-200");
+          } else {
+            b.classList.remove("bg-white", "dark:bg-slate-900", "text-blue-600", "dark:text-blue-400", "shadow-sm");
+            b.classList.add("text-slate-500", "dark:text-slate-400", "hover:text-slate-700", "dark:hover:text-slate-200");
+          }
+        });
+        render();
+      });
+    });
+
+    // ---------- Target picker ----------
+    const targetGrid = document.getElementById("target-grid");
+    const targetHint = document.getElementById("target-hint");
+    function buildTargetGrid() {
+      targetGrid.innerHTML = "";
+      DENOMINATIONS.forEach((d) => {
+        const b = document.createElement("button");
+        b.textContent = fmtDenomLabel(d);
+        const active = d === state.targetDenom;
+        b.className =
+          "h-10 rounded-lg text-xs font-semibold border transition-all " +
+          (active
+            ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+            : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-blue-300 hover:text-blue-600 dark:hover:text-blue-400");
+        b.addEventListener("click", () => { state.targetDenom = d; render(); });
+        targetGrid.appendChild(b);
+      });
+      targetHint.textContent = `Hitung berapa keping/lembar ${fmtIDR(state.targetDenom)} untuk menutupi total.`;
+    }
+
+    // ---------- Custom (Bagi Rata) picker ----------
+    const customGrid = document.getElementById("custom-grid");
+    const customCount = document.getElementById("custom-count");
+    const customAllBtn = document.getElementById("custom-all");
+    const customNoneBtn = document.getElementById("custom-none");
+    const customPerdenom = document.getElementById("custom-perdenom");
+    const customPerdenomLabel = document.getElementById("custom-perdenom-label");
+    const customPerdenomValue = document.getElementById("custom-perdenom-value");
+    const customEmptyWarn = document.getElementById("custom-empty-warn");
+
+    function buildCustomGrid() {
+      customGrid.innerHTML = "";
+      DENOMINATIONS.forEach((d) => {
+        const checked = state.customDenoms.includes(d);
+        const b = document.createElement("button");
+        b.className =
+          "relative flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-left transition-all " +
+          (checked
+            ? "bg-white dark:bg-slate-800 border-blue-300 dark:border-blue-700 shadow-sm ring-1 ring-blue-200 dark:ring-blue-900"
+            : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600");
+        b.innerHTML = `
+          <div class="flex-1 min-w-0">
+            <div class="text-sm font-semibold truncate ${checked ? "text-slate-800 dark:text-slate-100" : "text-slate-600 dark:text-slate-300"}">${fmtIDR(d)}</div>
+            <div class="text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500">${d >= 1000 ? "Lembar" : "Keping"}</div>
+          </div>
+          ${checked ? '<svg class="w-4 h-4 shrink-0 text-blue-600 dark:text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/></svg>' : ""}
+        `;
+        b.addEventListener("click", () => {
+          if (checked) state.customDenoms = state.customDenoms.filter((x) => x !== d);
+          else state.customDenoms = [...state.customDenoms, d];
+          render();
+        });
+        customGrid.appendChild(b);
+      });
+      customCount.textContent = `(${state.customDenoms.length}/${DENOMINATIONS.length})`;
+      customAllBtn.disabled = state.customDenoms.length === DENOMINATIONS.length;
+      customNoneBtn.disabled = state.customDenoms.length === 0;
+    }
+    customAllBtn.addEventListener("click", () => { state.customDenoms = [...DENOMINATIONS]; render(); });
+    customNoneBtn.addEventListener("click", () => { state.customDenoms = []; render(); });
+
+    // ---------- Percent picker ----------
+    const percentRowsEl = document.getElementById("percent-rows");
+    const percentTotalLabel = document.getElementById("percent-total-label");
+    const percentBar = document.getElementById("percent-bar");
+    const percentWarn = document.getElementById("percent-warn");
+    const percentResetBtn = document.getElementById("percent-reset");
+
+    function buildPercentRows() {
+      percentRowsEl.innerHTML = "";
+      PERCENT_DENOMINATIONS.forEach((d) => {
+        const v = state.percentages[d] || 0;
+        const allocated = state.amount > 0 ? Math.floor((state.amount * v) / 100) : 0;
+        const row = document.createElement("div");
+        row.className = "flex items-center gap-3 px-3 py-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800";
+        row.innerHTML = `
+          <div class="flex-1 min-w-0">
+            <div class="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">${fmtIDR(d)}</div>
+            <div class="text-[11px] text-slate-400 dark:text-slate-500 truncate">${state.amount > 0 ? fmtIDR(allocated) : "—"}</div>
+          </div>
+          <div class="relative w-20 shrink-0">
+            <input type="text" inputmode="numeric" value="${v === 0 ? "" : v}" placeholder="0"
+              data-denom="${d}"
+              class="percent-input h-9 pr-7 text-right text-sm font-semibold bg-slate-50 dark:bg-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-lg w-full outline-none" />
+            <span class="absolute inset-y-0 right-2 flex items-center pointer-events-none text-xs text-slate-400 dark:text-slate-500">%</span>
+          </div>
+        `;
+        percentRowsEl.appendChild(row);
+      });
+      percentRowsEl.querySelectorAll(".percent-input").forEach((inp) => {
+        inp.addEventListener("input", (e) => {
+          const denom = parseInt(e.target.dataset.denom, 10);
+          const cleaned = e.target.value.replace(/\D/g, "");
+          let v = cleaned ? parseInt(cleaned, 10) : 0;
+          if (v > 100) v = 100;
+          state.percentages[denom] = v;
+          render();
+        });
+      });
+    }
+    percentResetBtn.addEventListener("click", () => {
+      PERCENT_DENOMINATIONS.forEach((d) => (state.percentages[d] = 0));
+      render();
+    });
+
+    // ---------- Calculations ----------
+    function autoBreakdown() {
+      let current = state.amount;
+      const out = [];
+      for (const d of DENOMINATIONS) {
+        if (current >= d) {
+          const c = Math.floor(current / d);
+          out.push({ denom: d, count: c });
+          current -= c * d;
+        }
+      }
+      return { rows: out, remainder: current };
+    }
+    function targetBreakdown() {
+      const c = Math.floor(state.amount / state.targetDenom);
+      const rem = state.amount - c * state.targetDenom;
+      return { rows: c > 0 ? [{ denom: state.targetDenom, count: c }] : [], remainder: rem };
+    }
+    function customSplit() {
+      const sorted = DENOMINATIONS.filter((d) => state.customDenoms.includes(d));
+      const n = sorted.length;
+      if (!state.amount || n === 0) return { rows: [], perDenom: 0, totalRemainder: 0, n };
+      const perDenom = Math.floor(state.amount / n);
+      const splitLeftover = state.amount - perDenom * n;
+      let totalRemainder = splitLeftover;
+      const rows = sorted.map((d) => {
+        const count = Math.floor(perDenom / d);
+        const used = count * d;
+        const rem = perDenom - used;
+        totalRemainder += rem;
+        return { denom: d, allocation: perDenom, count, remainder: rem };
+      });
+      return { rows, perDenom, totalRemainder, n };
+    }
+    function percentBreakdown() {
+      let unallocated = state.amount;
+      const totalP = PERCENT_DENOMINATIONS.reduce((a, d) => a + (state.percentages[d] || 0), 0);
+      const rows = PERCENT_DENOMINATIONS.map((d) => {
+        const p = state.percentages[d] || 0;
+        const allocated = Math.floor((state.amount * p) / 100);
+        const count = Math.floor(allocated / d);
+        unallocated -= count * d;
+        return { denom: d, percent: p, allocatedAmount: allocated, count };
+      });
+      return { rows, unallocated, totalP };
+    }
+
+    // ---------- Render ----------
+    const targetPicker = document.getElementById("target-picker");
+    const customPicker = document.getElementById("custom-picker");
+    const percentPicker = document.getElementById("percent-picker");
+    const resultsArea = document.getElementById("results-area");
+
+    function render() {
+      targetPicker.hidden = state.mode !== "target";
+      customPicker.hidden = state.mode !== "custom";
+      percentPicker.hidden = state.mode !== "percent";
+
+      if (state.mode === "target") buildTargetGrid();
+      if (state.mode === "custom") {
+        buildCustomGrid();
+        const cs = customSplit();
+        if (state.amount > 0 && state.customDenoms.length > 0) {
+          customPerdenom.classList.remove("hidden");
+          customPerdenom.classList.add("flex");
+          customPerdenomLabel.textContent = `Alokasi per pecahan (${cs.n}×)`;
+          customPerdenomValue.textContent = fmtIDR(cs.perDenom);
+        } else {
+          customPerdenom.classList.add("hidden");
+          customPerdenom.classList.remove("flex");
+        }
+        customEmptyWarn.hidden = !(state.customDenoms.length === 0 && state.amount > 0);
+      }
+      if (state.mode === "percent") {
+        buildPercentRows();
+        const totalP = PERCENT_DENOMINATIONS.reduce((a, d) => a + (state.percentages[d] || 0), 0);
+        percentTotalLabel.textContent = `${totalP}%`;
+        percentBar.style.width = `${Math.min(totalP, 100)}%`;
+        percentBar.className = "h-full rounded-full transition-all duration-300 " + (
+          totalP > 100 ? "bg-red-500" : totalP === 100 ? "bg-emerald-500" : "bg-blue-500"
+        );
+        percentTotalLabel.className = "font-semibold " + (
+          totalP > 100 ? "text-red-600 dark:text-red-400" : totalP === 100 ? "text-emerald-600 dark:text-emerald-400" : "text-blue-600 dark:text-blue-400"
+        );
+        percentWarn.hidden = totalP <= 100;
+        if (totalP > 100) percentWarn.textContent = `Total melebihi 100% (kelebihan ${totalP - 100}%).`;
+      }
+
+      renderResults();
+    }
+
+    function emptyState(subtitle) {
+      return `
+        <div class="flex flex-col items-center justify-center h-full text-center py-12">
+          <div class="w-16 h-16 bg-slate-100 dark:bg-slate-800 text-slate-300 dark:text-slate-600 rounded-full flex items-center justify-center mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+          </div>
+          <p class="text-slate-500 dark:text-slate-400 font-medium">Masukkan jumlah uang</p>
+          <p class="text-slate-400 dark:text-slate-500 text-sm mt-1 max-w-[240px]">${subtitle}</p>
+        </div>
+      `;
+    }
+
+    function copyButton() {
+      return `
+        <div class="pt-2">
+          <button id="btn-copy" class="w-full text-blue-600 dark:text-blue-400 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-950/50 h-12 rounded-xl transition-all font-medium inline-flex items-center justify-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+            Salin Rincian
+          </button>
+        </div>
+      `;
+    }
+
+    function renderResults() {
+      let html = "";
+      if (state.mode === "percent") {
+        const r = percentBreakdown();
+        if (!(state.amount > 0 && r.totalP > 0)) {
+          resultsArea.innerHTML = emptyState("lalu atur persentase per pecahan untuk melihat alokasi.");
+          return;
+        }
+        const tcolor = r.totalP > 100 ? "text-red-600 dark:text-red-400" : r.totalP === 100 ? "text-emerald-600 dark:text-emerald-400" : "text-blue-600 dark:text-blue-400";
+        html = `
+          <div class="space-y-6">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-200/80 dark:border-slate-800">
+              <div class="space-y-1">
+                <p class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Nominal</p>
+                <p class="text-lg font-semibold text-slate-800 dark:text-slate-100">${fmtIDR(state.amount)}</p>
+              </div>
+              <div class="text-right space-y-1">
+                <p class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Alokasi</p>
+                <p class="text-lg font-semibold ${tcolor}">${r.totalP}%</p>
+              </div>
+            </div>
+            <div class="overflow-hidden rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900">
+              <div class="grid grid-cols-12 px-3 py-2.5 bg-slate-50 dark:bg-slate-800 text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800">
+                <div class="col-span-4">Pecahan</div>
+                <div class="col-span-2 text-right">%</div>
+                <div class="col-span-4 text-right">Alokasi</div>
+                <div class="col-span-2 text-right">Lembar</div>
+              </div>
+              <div class="divide-y divide-slate-100 dark:divide-slate-800">
+                ${
+                  r.rows.filter((x) => x.percent > 0).length === 0
+                    ? `<div class="px-3 py-6 text-center text-sm text-slate-400 dark:text-slate-500">Atur persentase di atas untuk melihat alokasi.</div>`
+                    : r.rows.filter((x) => x.percent > 0).map((x) => `
+                        <div class="grid grid-cols-12 items-center px-3 py-3 text-sm">
+                          <div class="col-span-4 font-medium text-slate-700 dark:text-slate-200">${fmtIDR(x.denom)}</div>
+                          <div class="col-span-2 text-right text-slate-600 dark:text-slate-300">${x.percent}%</div>
+                          <div class="col-span-4 text-right text-slate-700 dark:text-slate-200">${fmtIDR(x.allocatedAmount)}</div>
+                          <div class="col-span-2 text-right">
+                            <span class="font-semibold text-blue-600 dark:text-blue-400">${x.count}</span>
+                            <span class="text-xs text-slate-400 dark:text-slate-500 ml-1">Lbr</span>
+                          </div>
+                        </div>
+                      `).join("")
                 }
               </div>
             </div>
             ${
               r.unallocated > 0
-                ? `<div class="flex items-center justify-between p-3.5 bg-orange-50/50 rounded-xl border border-orange-100/50 text-orange-800">
+                ? `<div class="flex items-center justify-between p-3.5 bg-orange-50/50 dark:bg-orange-950/30 rounded-xl border border-orange-100/50 dark:border-orange-900/40 text-orange-800 dark:text-orange-300">
                      <div class="font-medium text-sm">Sisa / Belum dialokasikan</div>
                      <div class="font-semibold">${fmtIDR(r.unallocated)}</div>
                    </div>`
@@ -35,37 +482,35 @@ class="grid grid-cols-12 items-center px-3 py-3 text-sm">
         }
         html = `
           <div class="space-y-6">
-            <div class="flex items-center justify-between pb-4 border-b border-slate-200/80">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-200/80 dark:border-slate-800">
               <div class="space-y-1">
-                <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Total Nominal</p>
-                <p class="text-lg font-semibold text-slate-800">${fmtIDR(state.amount)}</p>
+                <p class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Nominal</p>
+                <p class="text-lg font-semibold text-slate-800 dark:text-slate-100">${fmtIDR(state.amount)}</p>
               </div>
               <div class="text-right space-y-1">
-                <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Per Pecahan (${cs.n}×)</p>
-                <p class="text-lg font-semibold text-blue-600">${fmtIDR(cs.perDenom)}</p>
+                <p class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Per Pecahan (${cs.n}×)</p>
+                <p class="text-lg font-semibold text-blue-600 dark:text-blue-400">${fmtIDR(cs.perDenom)}</p>
               </div>
             </div>
             <div class="space-y-3">
-              ${cs.rows
-                .map((r) => {
-                  const unit = r.denom >= 1000 ? "Lembar" : "Keping";
-                  return `
-                    <div class="flex items-center justify-between p-3.5 bg-white rounded-xl border border-slate-100 shadow-sm">
-                      <div class="space-y-0.5">
-                        <div class="text-sm font-semibold text-slate-700">Pecahan ${fmtIDR(r.denom)}</div>
-                        <div class="text-[11px] text-slate-500">Alokasi ${fmtIDR(r.allocation)}</div>
-                      </div>
-                      <div class="flex items-baseline gap-1.5">
-                        <span class="text-xl font-bold text-blue-600">${r.count}</span>
-                        <span class="text-xs text-slate-500">${unit}</span>
-                      </div>
+              ${cs.rows.map((r) => {
+                const unit = r.denom >= 1000 ? "Lembar" : "Keping";
+                return `
+                  <div class="flex items-center justify-between p-3.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                    <div class="space-y-0.5">
+                      <div class="text-sm font-semibold text-slate-700 dark:text-slate-100">Pecahan ${fmtIDR(r.denom)}</div>
+                      <div class="text-[11px] text-slate-500 dark:text-slate-400">Alokasi ${fmtIDR(r.allocation)}</div>
                     </div>
-                  `;
-                })
-                .join("")}
+                    <div class="flex items-baseline gap-1.5">
+                      <span class="text-xl font-bold text-blue-600 dark:text-blue-400">${r.count}</span>
+                      <span class="text-xs text-slate-500 dark:text-slate-400">${unit}</span>
+                    </div>
+                  </div>
+                `;
+              }).join("")}
               ${
                 cs.totalRemainder > 0
-                  ? `<div class="flex items-center justify-between p-3.5 bg-orange-50/50 rounded-xl border border-orange-100/50 text-orange-800">
+                  ? `<div class="flex items-center justify-between p-3.5 bg-orange-50/50 dark:bg-orange-950/30 rounded-xl border border-orange-100/50 dark:border-orange-900/40 text-orange-800 dark:text-orange-300">
                        <div class="font-medium text-sm">Sisa Saldo</div>
                        <div class="font-semibold">${fmtIDR(cs.totalRemainder)}</div>
                      </div>`
@@ -79,54 +524,50 @@ class="grid grid-cols-12 items-center px-3 py-3 text-sm">
         const r = state.mode === "target" ? targetBreakdown() : autoBreakdown();
         const hasContent = r.rows.length > 0 || (state.amount > 0 && r.remainder > 0);
         if (!hasContent) {
-          const sub =
-            state.mode === "target"
-              ? `untuk menghitung jumlah pecahan ${fmtIDR(state.targetDenom)}.`
-              : `untuk melihat rincian pecahan fisik yang dibutuhkan.`;
+          const sub = state.mode === "target"
+            ? `untuk menghitung jumlah pecahan ${fmtIDR(state.targetDenom)}.`
+            : `untuk melihat rincian pecahan fisik yang dibutuhkan.`;
           resultsArea.innerHTML = emptyState(sub);
           return;
         }
         const totalPieces = r.rows.reduce((a, x) => a + x.count, 0);
-        const summaryRight =
-          state.mode === "target"
-            ? `<span class="text-blue-600">${fmtDenomLabel(state.targetDenom)}</span>`
-            : `${totalPieces} <span class="text-sm font-normal text-slate-500">pcs</span>`;
+        const summaryRight = state.mode === "target"
+          ? `<span class="text-blue-600 dark:text-blue-400">${fmtDenomLabel(state.targetDenom)}</span>`
+          : `${totalPieces} <span class="text-sm font-normal text-slate-500 dark:text-slate-400">pcs</span>`;
         const summaryLabel = state.mode === "target" ? "Mode Target" : "Total Fisik";
         html = `
           <div class="space-y-6">
-            <div class="flex items-center justify-between pb-4 border-b border-slate-200/80">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-200/80 dark:border-slate-800">
               <div class="space-y-1">
-                <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Total Nominal</p>
-                <p class="text-lg font-semibold text-slate-800">${fmtIDR(state.amount)}</p>
+                <p class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Nominal</p>
+                <p class="text-lg font-semibold text-slate-800 dark:text-slate-100">${fmtIDR(state.amount)}</p>
               </div>
               <div class="text-right space-y-1">
-                <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">${summaryLabel}</p>
-                <p class="text-lg font-semibold text-slate-800">${summaryRight}</p>
+                <p class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">${summaryLabel}</p>
+                <p class="text-lg font-semibold text-slate-800 dark:text-slate-100">${summaryRight}</p>
               </div>
             </div>
             <div class="space-y-3">
-              ${r.rows
-                .map((x) => {
-                  const unit = x.denom >= 1000 ? "Lembar" : "Keping";
-                  return `
-                    <div class="flex items-center justify-between p-3.5 bg-white rounded-xl border border-slate-100 shadow-sm">
-                      <div class="font-medium text-slate-700">${fmtIDR(x.denom)}</div>
-                      <div class="flex items-center space-x-2">
-                        <span class="text-base font-semibold text-blue-600">${x.count}</span>
-                        <span class="text-sm text-slate-500">${unit}</span>
-                      </div>
+              ${r.rows.map((x) => {
+                const unit = x.denom >= 1000 ? "Lembar" : "Keping";
+                return `
+                  <div class="flex items-center justify-between p-3.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                    <div class="font-medium text-slate-700 dark:text-slate-200">${fmtIDR(x.denom)}</div>
+                    <div class="flex items-center space-x-2">
+                      <span class="text-base font-semibold text-blue-600 dark:text-blue-400">${x.count}</span>
+                      <span class="text-sm text-slate-500 dark:text-slate-400">${unit}</span>
                     </div>
-                  `;
-                })
-                .join("")}
+                  </div>
+                `;
+              }).join("")}
               ${
                 r.rows.length === 0 && state.mode === "target" && state.amount > 0
-                  ? `<div class="flex items-center justify-center p-4 bg-white rounded-xl border border-slate-100 shadow-sm text-sm text-slate-500 text-center">Jumlah lebih kecil dari pecahan target.</div>`
+                  ? `<div class="flex items-center justify-center p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm text-sm text-slate-500 dark:text-slate-400 text-center">Jumlah lebih kecil dari pecahan target.</div>`
                   : ""
               }
               ${
                 r.remainder > 0
-                  ? `<div class="flex items-center justify-between p-3.5 bg-orange-50/50 rounded-xl border border-orange-100/50 text-orange-800">
+                  ? `<div class="flex items-center justify-between p-3.5 bg-orange-50/50 dark:bg-orange-950/30 rounded-xl border border-orange-100/50 dark:border-orange-900/40 text-orange-800 dark:text-orange-300">
                        <div class="font-medium">Sisa Uang</div>
                        <div class="font-semibold">${fmtIDR(r.remainder)}</div>
                      </div>`
@@ -194,7 +635,6 @@ class="grid grid-cols-12 items-center px-3 py-3 text-sm">
       navigator.clipboard.writeText(text).then(() => showToast("Berhasil disalin ke papan klip"));
     }
 
-    // ---------- Buttons ----------
     document.getElementById("btn-calc").addEventListener("click", () => render());
     document.getElementById("btn-clear").addEventListener("click", () => {
       state.raw = "";
@@ -204,7 +644,6 @@ class="grid grid-cols-12 items-center px-3 py-3 text-sm">
       render();
     });
 
-    // initial paint
     render();
   </script>
 </body>
